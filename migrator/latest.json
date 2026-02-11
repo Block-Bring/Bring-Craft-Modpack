@@ -1,6 +1,25 @@
 {
     "version": "1.9.2",
-    "files":[],
-    "delete": []
+    "copies":[
+        {
+            "from": "options.txt",
+            "to": "options.txt"
+        },
+        {
+            "from": "xaero/",
+            "to": "xaero/"
+        },
+        {
+            "from": "shaderpacks/",
+            "to": "shaderpacks/"
+        }
+    ],
+    "deletes": [
+        "config/example_mod/",
+        "config/example.json",
+        "tacz/",
+        "shaderpacks/"
+    ]
 }
+
 
