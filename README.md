@@ -1,1 +1,1 @@
-**Bring Craft** 是一个偏向自由探索型的娱乐向整合包，由小部分玩家的意见组成。
+Bring Craft is a exploration-oriented, casual-friendly Minecraft modpack driven by the ideas and feedback of a small group of dedicated players. It features no rigid quest lines, encouraging players to explore, build, and automate at their own pace while enjoying the synergy of mods in a relaxed atmosphere.
