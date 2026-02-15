@@ -27,6 +27,8 @@ latest = {}
 dot_minecraft_folder = ""
 modpack_version = ""
 feature = ""
+new_version = ""
+old_version = ""
 
 # 加载配置文件
 def load_config() -> bool:
@@ -192,11 +194,73 @@ def select_minecraft_directory(initialize):
 
     return select()
 
+def choose_version():
+    global old_version, new_version
+    """
+    选择原 Minecraft 版本与新 Minecraft 版本，并筛选有 mods 文件夹的版本。
+    """
+    versions_dir = os.path.join(dot_minecraft_folder, "versions")
+    if not os.path.exists(versions_dir):
+        print(f"{RED}未找到 versions 文件夹{RST}")
+        return None, None
+
+    # 获取所有版本文件夹
+    version_folders = [
+        f for f in os.listdir(versions_dir)
+        if os.path.isdir(os.path.join(versions_dir, f))
+    ]
+
+    # 筛选包含 mods 文件夹的版本
+    valid_versions = []
+    for version in version_folders:
+        mods_path = os.path.join(versions_dir, version, "mods")
+        if os.path.exists(mods_path):
+            valid_versions.append(version)
+
+    if not valid_versions:
+        print(f"{RED}未找到包含 mods 文件夹的版本{RST}")
+        return None, None
+
+    print(f"{YELLOW}可用的 Minecraft 版本（包含 mods 文件夹）：{RST}")
+    for i, version in enumerate(valid_versions, start=1):
+        print(f"  [{i}] {version}")
+    max_int = len(valid_versions)
+    print(f"  [{max_int+1}] 退出")
+
+    def select_version(message, old_version_int, is_new_version):
+        while True:
+            try:
+                choice = int(input(message).strip())
+                if 1 <= choice <= max_int:
+                    if not is_new_version:
+                        return choice
+                    else:
+                        if choice == old_version_int:
+                            print(f"{RED}请选择与旧版本实例不同的版本实例{RST}")
+                        else:
+                            return choice
+                elif choice == max_int+1:
+                    return "exit"
+                else:
+                    print(f"{RED}无效的选择，请输入 1-{max_int}{RST}")
+            except ValueError:
+                print(f"{RED}无效的选择，请输入数字{RST}")
+
+    old_version_choice = select_version("请选择旧版本实例：", None, False)
+    old_version_name = valid_versions[old_version_choice-1]
+    old_version = os.path.join(versions_dir, old_version_name)
+    new_version_choice = select_version("请选择新版本实例：", old_version_choice, True)
+    new_version_name = valid_versions[new_version_choice-1]
+    new_version = os.path.join(versions_dir, new_version_name)
+    print(f"已选的旧 Minecraft 实例：{GREEN}{old_version_name}{RST}\n已选的新 Minecraft 实例：{GREEN}{new_version_name}{RST}\n")
 def migrate():
-    # 待开发
     l.clear()
-    l.title("Bring Migrator - 配置迁移")
-    print(f"{RED}该功能正在开发中，敬请期待！{RST}")
+    choose_ver = choose_version()
+    if choose_ver == "exit":
+        pass
+    elif choose_ver:
+        pass
+    return True
 
 def features(latest_is_latest: bool) -> int:
     l.clear()
@@ -244,9 +308,9 @@ def main() -> bool:
             else:
                 return False
 
-            FEATURES_MAP = {1: lambda: migrate(), 2: lambda: select_minecraft_directory(False), 3: lambda: True}
-            if feature in FEATURES_MAP:
-                FEATURES_MAP[feature]()
+            FEATURE_MAP = {1: migrate, 2: lambda: select_minecraft_directory(False), 3: True}
+            if feature in FEATURE_MAP:
+                return FEATURE_MAP[feature]()
         else:
             select_minecraft_directory(True)
     else:
