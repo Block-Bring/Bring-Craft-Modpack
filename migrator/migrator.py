@@ -74,7 +74,7 @@ def load_latest_info_file() -> int:
     def request_file() -> bool:
         url = "https://raw.githubusercontent.com/Block-Bring/Bring-Craft-Modpack/refs/heads/main/migrator/latest.json"
         request_headers = {
-            'User-Agent': 'Bring-Migrator/1.9.2 (https://github.com/Block-Bring/Bring-Craft-Modpack)'
+            'User-Agent': 'Bring-Migrator/1.10 (https://github.com/Block-Bring/Bring-Craft-Modpack)'
         }
         try:
             print(f"{YELLOW}正在尝试下载最新信息文件...{RST}")
@@ -142,10 +142,8 @@ def is_valid_minecraft_directory(directory: str) -> bool:
 def select_minecraft_directory(initialize):
     l.clear()
     l.title("Bring Migrator - 目录选择")
-    if initialize:
-        print(f"{RED}Minecraft 目录无效{RST}")
-    else:
-        print("更改 Minecraft 目录")
+
+    print(f"{RED}Minecraft 目录无效{RST}" if initialize else f"{GREEN}选择 Minecraft 目录{RST}")
     print(f"请选择你的 Minecraft 目录")
 
     def select():
@@ -154,13 +152,14 @@ def select_minecraft_directory(initialize):
             root = tk.Tk()
             root.withdraw()
             select_operate = filedialog.askdirectory()
-            directory = os.path.join(select_operate)
+            selected_directory = select_operate
+            directory = os.path.normpath(selected_directory)
             root.destroy()
 
             # ② 处理用户取消（点了取消或关闭窗口）
-            if not directory:
+            if not selected_directory:
                 print("已取消选择。")
-                return False  # 保持与原退出逻辑一致
+                return "back" if not initialize else False  # 保持与原退出逻辑一致
 
             if is_valid_minecraft_directory(directory):
                 print(f"已选择目录：{directory}")
@@ -199,33 +198,45 @@ def choose_version():
     """
     选择原 Minecraft 版本与新 Minecraft 版本，并筛选有 mods 文件夹的版本。
     """
-    versions_dir = os.path.join(dot_minecraft_folder, "versions")
+    l.title("Bring Migrator - 配置迁移")
+    versions_dir = os.path.normpath(os.path.join(dot_minecraft_folder, "versions"))
     if not os.path.exists(versions_dir):
         print(f"{RED}未找到 versions 文件夹{RST}")
         return None, None
 
     # 获取所有版本文件夹
     version_folders = [
-        f for f in os.listdir(versions_dir)
-        if os.path.isdir(os.path.join(versions_dir, f))
+        item for item in os.listdir(versions_dir)
+        if os.path.isdir(os.path.join(versions_dir, item))
     ]
 
     # 筛选包含 mods 文件夹的版本
-    valid_versions = []
-    for version in version_folders:
-        mods_path = os.path.join(versions_dir, version, "mods")
-        if os.path.exists(mods_path):
-            valid_versions.append(version)
+    # 此处第一个 version 省略了 valid_versions.append(version) 的操作
+    # 第二个 version 是 for 循环的一个临时变量，循环取出 version_folders 列表中的元素赋给 version
+    # 下面那行就是 for 循环中，如果本次循环中的 version 满足条件，则将 version 添加到 valid_versions 列表中
+    # 循环结束后，valid_versions 列表中就会有所有满足条件的版本
+    # ^^^^ 布灵的学习笔记 ^^^^
+    valid_versions = [
+        version for version in version_folders
+        if os.path.exists(os.path.join(versions_dir, version, "mods"))
+    ]
 
     if not valid_versions:
         print(f"{RED}未找到包含 mods 文件夹的版本{RST}")
         return None, None
 
-    print(f"{YELLOW}可用的 Minecraft 版本（包含 mods 文件夹）：{RST}")
+    # 此处 Python 自动拆分了元组，第一个值自动对应了 enumerate 的 0 索引，第二个值对应了 enumerate 的 1 索引
+    # ^^^^  布灵的学习笔记 ^^^^
+    print(f"=========================================")
+    print(f"      {YELLOW}迁移 Minecraft 个性化设置{RST}")
+    print("")
+    print(f"  [{YELLOW}0{RST}] 返回")
     for i, version in enumerate(valid_versions, start=1):
-        print(f"  [{i}] {version}")
+        print(f"  [{GREEN}{i}{RST}] {version}")
     max_int = len(valid_versions)
-    print(f"  [{max_int+1}] 退出")
+    print(f"  [{RED}{max_int+1}{RST}] 退出")
+    print("")
+    print(f"=========================================")
 
     def select_version(message, old_version_int, is_new_version):
         while True:
@@ -241,30 +252,45 @@ def choose_version():
                             return choice
                 elif choice == max_int+1:
                     return "exit"
+                elif choice == 0:
+                    return "back"
                 else:
                     print(f"{RED}无效的选择，请输入 1-{max_int}{RST}")
             except ValueError:
                 print(f"{RED}无效的选择，请输入数字{RST}")
 
     old_version_choice = select_version("请选择旧版本实例：", None, False)
-    old_version_name = valid_versions[old_version_choice-1]
+    if old_version_choice == "exit":
+        return "exit"
+    elif old_version_choice == "back":
+        return "back"
+    else:
+        old_version_name = valid_versions[old_version_choice-1]
     old_version = os.path.join(versions_dir, old_version_name)
     new_version_choice = select_version("请选择新版本实例：", old_version_choice, True)
-    new_version_name = valid_versions[new_version_choice-1]
+    if new_version_choice == "exit":
+        return "exit"
+    elif new_version_choice == "back":
+        return "back"
+    else:
+        new_version_name = valid_versions[new_version_choice-1]
     new_version = os.path.join(versions_dir, new_version_name)
     print(f"已选的旧 Minecraft 实例：{GREEN}{old_version_name}{RST}\n已选的新 Minecraft 实例：{GREEN}{new_version_name}{RST}\n")
+
 def migrate():
     l.clear()
     choose_ver = choose_version()
     if choose_ver == "exit":
         pass
+    elif choose_ver == "back":
+        return "back"
     elif choose_ver:
         pass
     return True
 
 def features(latest_is_latest: bool) -> int:
-    l.clear()
-    l.title("Bring Migrator - 操作选择")
+    l. clear()
+    l. title("Bring Migrator - 操作选择")
     print(f"当前 Minecraft 目录：{GREEN}{dot_minecraft_folder}{RST}")
     if latest_is_latest:
         print(f"Bring Craft 版本：{GREEN}{modpack_version}{RST}")
@@ -303,20 +329,24 @@ def main() -> bool:
             dot_minecraft_folder = os.path.join(config["minecraft_directory"])
 
             LOADING_LATEST_MAP = {1: True, 2: False}
-            if loading_latest in LOADING_LATEST_MAP:
-                feature = features(LOADING_LATEST_MAP[loading_latest])
-            else:
-                return False
-
-            FEATURE_MAP = {1: migrate, 2: lambda: select_minecraft_directory(False), 3: True}
-            if feature in FEATURE_MAP:
-                return FEATURE_MAP[feature]()
+            FEATURES_MAP = {1: lambda: migrate(), 2: lambda: select_minecraft_directory(False), 3: lambda: True}
+            while True:
+                if loading_latest in LOADING_LATEST_MAP:
+                    feature = features(LOADING_LATEST_MAP[loading_latest])
+                else:
+                    return False
+                if feature in FEATURES_MAP:
+                    action = FEATURES_MAP[feature]
+                    result = action()
+                    if result == "back":
+                        pass
+                    else:
+                        return result
         else:
-            select_minecraft_directory(True)
+            return select_minecraft_directory(True)
     else:
         print(f"{RED}无法初始化程序{RST}")
         return False
-    return True
 
 if __name__ == "__main__":
     if main():
