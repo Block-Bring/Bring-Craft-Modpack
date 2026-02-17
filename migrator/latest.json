@@ -1,5 +1,9 @@
 {
-    "version": "1.9.2",
+    "application": {
+        "version": "1.10.0",
+        "latest_url": "暂时未提供获取 URL"
+    },
+    "version": "1.10.0",
     "copies":[
         {
             "from": "options.txt",
