@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tkinter as tk
+import webbrowser
 from tkinter import filedialog
 
 import colorama
@@ -10,7 +11,6 @@ import requests
 import l
 
 colorama.init()
-
 RED = colorama.Fore.RED
 GREEN = colorama.Fore.GREEN
 YELLOW = colorama.Fore.YELLOW
@@ -30,9 +30,29 @@ feature = ""
 new_version = ""
 old_version = ""
 
+application_version = "1.9.2"
+
 # 加载配置文件
 def load_config() -> bool:
     global config
+    config_contents = {
+        "minecraft_directory": "",
+        "settings": {
+            "check_update": True
+        }
+    }
+    def _validate_config_structure(cfg, template):
+        """检查 cfg 是否包含 template 中的所有键（递归）"""
+        for key, value in template.items():
+            if key not in cfg:
+                return False
+            if isinstance(value, dict):
+                if not isinstance(cfg.get(key), dict):
+                    print(cfg.get(key))
+                    return False
+                if not _validate_config_structure(cfg[key], value):
+                    return False
+        return True
     print(f"{YELLOW}正在尝试读取配置文件...{RST}")
     if os.path.exists(CONFIG_FILE):
         try:
@@ -49,9 +69,6 @@ def load_config() -> bool:
         print(f"{RED}未找到配置文件{RST}")
         try:
             print(f"{YELLOW}正在尝试创建...{RST}")
-            config_contents = {
-                "minecraft_directory": ""
-            }
             with open(CONFIG_FILE, 'w', encoding='utf-8') as file:
                 json.dump(config_contents, file, indent=4) # type: ignore
                 print(f"{GREEN}成功创建配置文件{RST}")
@@ -65,16 +82,34 @@ def load_config() -> bool:
             print(f"{RED}无法读取配置文件：{e}")
 
     if config:
+        if not _validate_config_structure(config, config_contents):
+            print(f"{RED}配置文件结构异常，请手动删除 {CONFIG_FILE} 后重试。{RST}")
+            config = {}
+            return False
         print(f"{GREEN}成功加载配置文件{RST}")
         return True
     else:
         return False
+
+def save_config(show_saved_msg):
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as file:
+            json.dump(config, file, indent=4) # type: ignore
+            if show_saved_msg:
+                print(f"{GREEN}成功保存配置文件{RST}")
+    except Exception as exception:
+        print(f"{RED}保存配置文件 {CONFIG_FILE} 时出错：\n{exception}")
+        return False
+    return True
 # 联机获取信息
 def load_latest_info_file() -> int:
     def request_file() -> bool:
-        url = "https://raw.githubusercontent.com/Block-Bring/Bring-Craft-Modpack/refs/heads/main/migrator/latest.json"
+        url = "https://raw.githubusercontent.com/Block-Bring/"\
+              "Bring-Craft-Modpack/refs/heads/main/migrator/latest.json"
         request_headers = {
-            'User-Agent': 'Bring-Migrator/1.10 (https://github.com/Block-Bring/Bring-Craft-Modpack)'
+            "User-Agent": f"Bring-Migrator/{application_version} "
+                          "(https://github.com/Block-Bring/"
+                          "Bring-Craft-Modpack)"
         }
         try:
             print(f"{YELLOW}正在尝试下载最新信息文件...{RST}")
@@ -143,7 +178,8 @@ def select_minecraft_directory(initialize):
     l.clear()
     l.title("Bring Migrator - 目录选择")
 
-    print(f"{RED}Minecraft 目录无效{RST}" if initialize else f"{GREEN}选择 Minecraft 目录{RST}")
+    print(f"{RED}Minecraft 目录无效{RST}" if initialize
+          else f"{GREEN}选择 Minecraft 目录{RST}")
     print(f"请选择你的 Minecraft 目录")
 
     def select():
@@ -174,7 +210,7 @@ def select_minecraft_directory(initialize):
                 while True:
                     choice = input("请输入你的选择：").strip()
                     if choice == "1":
-                        break  # 跳出内层循环，外层 while True 自动重试
+                        break
                     elif choice == "2":
                         return False
                     else:
@@ -182,12 +218,9 @@ def select_minecraft_directory(initialize):
 
     def confirm_directory(directory):
         config["minecraft_directory"] = directory
-        try:
-            with open(CONFIG_FILE, "w", encoding="utf-8") as file:
-                json.dump(config, file, indent=4) # type: ignore
+        if save_config(False):
             print(f"{GREEN}更改完成。请手动重新启动程序。{RST}")
-        except Exception as exception:
-            print(f"{RED}保存到配置文件 {CONFIG_FILE} 时出错：{exception}{RST}")
+        else:
             return False
         return True
 
@@ -195,9 +228,7 @@ def select_minecraft_directory(initialize):
 
 def choose_version():
     global old_version, new_version
-    """
-    选择原 Minecraft 版本与新 Minecraft 版本，并筛选有 mods 文件夹的版本。
-    """
+
     l.title("Bring Migrator - 配置迁移")
     versions_dir = os.path.normpath(os.path.join(dot_minecraft_folder, "versions"))
     if not os.path.exists(versions_dir):
@@ -227,7 +258,7 @@ def choose_version():
 
     # 此处 Python 自动拆分了元组，第一个值自动对应了 enumerate 的 0 索引，第二个值对应了 enumerate 的 1 索引
     # ^^^^  布灵的学习笔记 ^^^^
-    print(f"=========================================")
+    print("=" * 41)
     print(f"      {YELLOW}迁移 Minecraft 个性化设置{RST}")
     print("")
     print(f"  [{YELLOW}0{RST}] 返回")
@@ -236,7 +267,7 @@ def choose_version():
     max_int = len(valid_versions)
     print(f"  [{RED}{max_int+1}{RST}] 退出")
     print("")
-    print(f"=========================================")
+    print("=" * 41)
 
     def select_version(message, old_version_int, is_new_version):
         while True:
@@ -275,7 +306,8 @@ def choose_version():
     else:
         new_version_name = valid_versions[new_version_choice-1]
     new_version = os.path.join(versions_dir, new_version_name)
-    print(f"已选的旧 Minecraft 实例：{GREEN}{old_version_name}{RST}\n已选的新 Minecraft 实例：{GREEN}{new_version_name}{RST}\n")
+    print(f"已选的旧 Minecraft 实例：{GREEN}{old_version_name}{RST}\n"
+          f"已选的新 Minecraft 实例：{GREEN}{new_version_name}{RST}")
 
 def migrate():
     l.clear()
@@ -288,48 +320,126 @@ def migrate():
         pass
     return True
 
+def settings():
+    l.title("Bring Migrator - 软件设置")
+    while True:
+        l.clear()
+        print("=" * 41)
+        print(f"                {YELLOW}软件设置{RST}")
+        print("")
+        print(f"  [{YELLOW}0{RST}] 返回")
+        print(f"  [{GREEN}1{RST}] 启动时检查更新：{GREEN}是{RST}"
+              if config.get("settings", {}).get("check_update")
+              else f"  [{GREEN}1{RST}] 启动时检查更新：{RED}否{RST}")
+        print("")
+        print("=" * 41)
+
+        while True:
+            choice = input("键入相应数字以配置：").strip()
+            if choice == "1":
+                config["settings"]["check_update"] = not config["settings"]["check_update"]
+                if not save_config(False):
+                    l.pause()
+                break
+            elif choice == "0":
+                return "back"
+            else:
+                print(f"{RED}无效的选择，请输入 0 或 1{RST}")
+
+def check_update(latest_is_latest: bool) -> int:
+    l.clear()
+    l.title("Bring Migrator - 检查更新")
+
+    try:
+        app_latest_version = latest.get("application", {}).get("version")
+        app_latest_url = latest.get("application", {}).get("latest_url")
+
+        if latest_is_latest and \
+            not application_version == app_latest_version and \
+                config.get("settings", {}).get("check_update"):
+
+            print(f"有新的 Bring Migrator 版本可用！")
+            print(f"{RED}{application_version}{RST} → {GREEN}{app_latest_version}{RST}")
+            if l.is_url(app_latest_url):
+                while True:
+                    open_browser = input(f"{YELLOW}是否打开浏览器以下载新版本？ [Y/n]{RST}").strip()
+                    if open_browser.lower() in ["y", "yes"]:
+                        print(f"{YELLOW}正在尝试启动浏览器...{RST}")
+                        webbrowser.open(app_latest_url)
+                        return 1
+                    elif open_browser.lower() in ["n", "no"]:
+                        return 2
+                    else:
+                        print(f"{RED}无效的输入{RST}")
+            else:
+                print(f"{RED}更新信息未提供有效 URL{RST}")
+                l.pause()
+                return 2
+        else: return 2
+
+    except Exception as exception:
+        print(f"{RED}检查更新时出错：{exception}\n"
+              f"请尝试删除应用程序目录下的 {CONFIG_FILE} 文件。{RST}")
+        return 0
+
 def features(latest_is_latest: bool) -> int:
-    l. clear()
-    l. title("Bring Migrator - 操作选择")
+    l.clear()
+    l.title("Bring Migrator - 主菜单")
     print(f"当前 Minecraft 目录：{GREEN}{dot_minecraft_folder}{RST}")
-    if latest_is_latest:
-        print(f"Bring Craft 版本：{GREEN}{modpack_version}{RST}")
-    else:
-        print(f"Bring Craft 版本：{YELLOW}{modpack_version}（可能过期）{RST}")
-    print(f"=========================================")
+    print(f"Bring Craft 版本：{GREEN}{modpack_version}{RST}" if latest_is_latest
+          else f"Bring Craft 版本：{YELLOW}{modpack_version}（可能过期）{RST}")
+    print("=" * 41)
     print(f"           {YELLOW}选择需要执行的操作{RST}")
     print("")
     print(f"   [{GREEN}1{RST}] 迁移 Minecraft 个性化设置")
     print(f"   [{GREEN}2{RST}] 重新设置 .minecraft 文件夹")
-    print(f"   [{GREEN}3{RST}] 退出")
+    print(f"   [{GREEN}3{RST}] 软件设置")
+    print(f"   [{GREEN}4{RST}] 退出")
     print("")
-    print(f"=========================================")
+    print("=" * 41)
     print("")
 
-    OPERATION_MAP = {"1": 1, "2": 2, "3": 3}
-    def operating():
-        while True:
-            operate = input("请输入操作序号：").strip()
-            if operate in OPERATION_MAP:
-                return OPERATION_MAP[operate]
-            print(f"{RED}无效的操作序号{RST}")
-    return operating()
+    OPERATION_MAP = {"1": 1, "2": 2, "3": 3, "4": 4}
+
+    while True:
+        operate = input("请输入操作序号：").strip()
+        if operate in OPERATION_MAP:
+            return OPERATION_MAP[operate]
+        print(f"{RED}无效的操作序号{RST}")
 
 def main() -> bool:
     global modpack_version, dot_minecraft_folder, feature
     l.title("Bring Migrator - 初始化")
     loading_config = load_config()
+    if not loading_config:
+        return False
     loading_latest = load_latest_info_file()
 
     if loading_config and loading_latest in (1, 2):
         # 整合包版本定义
         modpack_version = latest["version"]
-        if is_valid_minecraft_directory(config["minecraft_directory"]):
+        if is_valid_minecraft_directory(config.get("minecraft_directory")):
             # .minecraft 文件夹
-            dot_minecraft_folder = os.path.join(config["minecraft_directory"])
+            dot_minecraft_folder = os.path.normpath(
+                config.get("minecraft_directory"))
 
             LOADING_LATEST_MAP = {1: True, 2: False}
-            FEATURES_MAP = {1: lambda: migrate(), 2: lambda: select_minecraft_directory(False), 3: lambda: True}
+            FEATURES_MAP = {
+                1: lambda: migrate(),
+                2: lambda: select_minecraft_directory(False),
+                3: lambda: settings(),
+                4: lambda: True,
+                5: lambda: False
+            }
+            if config.get("settings", {}).get("check_update"):
+                update = check_update(LOADING_LATEST_MAP[loading_latest])
+                if update == 1:
+                    return True
+                elif update == 2:
+                    pass
+                else:
+                    return False
+
             while True:
                 if loading_latest in LOADING_LATEST_MAP:
                     feature = features(LOADING_LATEST_MAP[loading_latest])
@@ -352,10 +462,10 @@ if __name__ == "__main__":
     if main():
         l.title("Bring Migrator - 正常退出")
         print(f"{GREEN}程序正常退出{RST}")
-        input("按 Enter 键结束")
+        l.stop()
         sys.exit(True)
     else:
         l.title("Bring Migrator - 异常退出")
         print(f"{RED}程序异常退出{RST}")
-        input("按 Enter 键结束")
+        l.stop()
         sys.exit(False)
