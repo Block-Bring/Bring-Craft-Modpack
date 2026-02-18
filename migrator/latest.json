@@ -1,7 +1,7 @@
 {
     "application": {
-        "version": "1.10.0",
-        "latest_url": "https://raw.githubusercontent.com/Block-Bring/Bring-Craft-Modpack/refs/heads/main/migrator/latest.json"
+        "version": "1.9.3",
+        "latest_url": "Test"
     },
     "version": "1.10.0",
     "copies":[
@@ -25,4 +25,5 @@
         "shaderpacks/"
     ]
 }
+
 
