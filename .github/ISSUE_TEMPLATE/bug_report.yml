@@ -1,52 +1,83 @@
-name: "🐛 Bug 报告"
-description: 提交一个 Bug 帮助我们改进
+name: "🐛 Bug 报告 (Bug Report)"
+description: 提交一个 Bug 帮助我们改进 / Submit a bug to help us improve
 title: "[Bug]: "
-labels: ["bug"]  # 自动打上 bug 标签
+labels: ["bug"]
 
 body:
   - type: markdown
     attributes:
       value: |
-        感谢您报告问题！请填写以下信息。
+        **感谢您报告问题！请填写以下信息。**
+        *Thanks for reporting an issue! Please fill out the information below.*
 
   - type: checkboxes
-    id: type
+    id: confirmation
     attributes:
-      label: 二次定性
-      description: 重新确定当前 issue 类型
+      label: "确认 (Confirmation)"
+      description: "在提交之前，请确认 / Please confirm before submitting"
       options:
-        - label: 我确认我想要提交的的确是一个非预期性的 Bug，而不是新内容建议。
+        - label: |
+            我确认这是一个 **非预期行为的 Bug**，而不是功能建议或疑问。
+            *I confirm this is an **unexpected behavior (bug)**, not a feature request or question.*
           required: true
-        - label: 我是在移动端遇到这个问题的
+        - label: |
+            我是在移动端遇到这个问题的。
+            *I encountered this issue on a mobile device.*
+          required: false
 
   - type: textarea
     id: description
     attributes:
-      label: 问题描述
-      description: 请清晰简洁地描述这个 bug
+      label: "问题描述 (Description)"
+      description: |
+        请清晰简洁地描述这个 Bug。
+        *Please describe the bug clearly and concisely.*
+      placeholder: |
+        例如：点击按钮后应用闪退 / The app crashes when I click the button...
     validations:
       required: true
 
   - type: textarea
     id: reproduce
     attributes:
-      label: 复现步骤
-      description: 如何复现这个问题？
+      label: "复现步骤 (Steps to Reproduce)"
+      description: |
+        如何复现这个问题？请提供具体步骤。
+        *How can we reproduce this issue? Please provide step-by-step instructions.*
       placeholder: |
-        1. 打开 '...'
-        2. 点击 '....'
-        3. 看到错误情况
+        1. 打开应用 '...' / Open the app '...'
+        2. 点击 '....' / Click '....'
+        3. 看到错误 / See the error
     validations:
       required: true
 
   - type: dropdown
     id: os
     attributes:
-      label: 操作系统
-      description: 你使用的是什么系统？
+      label: "操作系统 (Operating System)"
+      description: |
+        你使用的是什么系统？
+        *Which operating system are you using?*
       options:
         - Windows
         - macOS
+        - Linux
         - Android
+        - iOS
+        - 其他 (Other)
     validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "日志或错误信息 (Logs / Error Messages)"
+      description: |
+        如果有相关的日志、报错截图或控制台输出，请粘贴在这里（这能帮助我们更快定位问题）。
+        *If you have any relevant logs, error screenshots, or console output, please paste them here (this helps us locate the issue faster).*
+      placeholder: |
+        将日志粘贴在此处...
+        Paste logs here...
+      render: shell
+    validations:
+      required: false
