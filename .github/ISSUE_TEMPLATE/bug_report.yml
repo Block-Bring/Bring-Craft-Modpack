@@ -24,6 +24,10 @@ body:
             我是在移动端遇到这个问题的。
             *I encountered this issue on a mobile device.*
           required: false
+        - label: |
+            我确认我不是在 Linux 上运行这个整合包。
+            *I confirm that I am not running this modpack on Linux.*
+          required: true
 
   - type: textarea
     id: description
