@@ -19,11 +19,8 @@ body:
         - label: "我确认这是一个 **非预期行为的 Bug**，而不是功能建议或疑问。 *I confirm this is an unexpected behavior (bug), not a feature request or question.*"
           required: true
         - label: "我是在移动端遇到这个问题的。 *I encountered this issue on a mobile device.*"
-          required: false
         - label: "我确认我不是在 Linux 上运行这个整合包。 *I confirm that I am not running this modpack on Linux.*"
           required: true
-      validations:
-        required: true
 
   - type: textarea
     id: description
