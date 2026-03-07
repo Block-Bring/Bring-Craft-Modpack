@@ -22,6 +22,8 @@ body:
           required: false
         - label: "我确认我不是在 Linux 上运行这个整合包。 *I confirm that I am not running this modpack on Linux.*"
           required: true
+      validations:
+        required: true
 
   - type: textarea
     id: description
